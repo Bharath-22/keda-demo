@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: example-app
+  name: example-app
+  namespace: default
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: example-app
+  template:
+    metadata:
+      labels:
+        app: example-app
+    spec:
+      containers:
+      - image: __image__
+        imagePullPolicy: IfNotPresent
+        name: example-app
+        ports:
+        - containerPort: __containerport__
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: __cpurequest__
+            memory: __memoryrequest__
+          limits:
+            cpu: __cpulimit__
+            memory: __memorylimit__
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: FallbackToLogsOnError
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 600
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-app
+  namespace: default
+spec:
+  ports:
+  - name: http
+    port: __containerport__
+    protocol: TCP
+    targetPort: __containerport__
+  selector:
+    app: example-app
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: example-app-sd
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: example-app
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+  - type: cpu
+    metadata:
+      type: "Utilization"
+      value: "__cputhreshold__"
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: example-app-sd
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: example-app
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+  - type: memory
+    metadata:
+      type: "Utilization"
+      value: "__memorythreshold__"
